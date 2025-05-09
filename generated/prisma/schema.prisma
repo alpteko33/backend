@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  name            String
+  surname         String
+  role            Role      @default(USER)
+  status          Status    @default(ACTIVE)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tasks           Task[]
+  createdClients  Client[]  @relation("CreatedBy")
+  createdLawsuits Lawsuit[] @relation("LawyerCreated")
+}
+
+model Contact {
+  id          Int         @id @default(autoincrement())
+  type        ContactType
+  value       String
+  description String?
+  client      Client?     @relation(fields: [clientId], references: [id])
+  clientId    Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    Priority   @default(NORMAL)
+  status      TaskStatus @default(PENDING)
+  assignedTo  User       @relation(fields: [userId], references: [id])
+  userId      Int
+  client      Client?    @relation(fields: [clientId], references: [id])
+  clientId    Int?
+  lawsuit     Lawsuit?   @relation(fields: [lawsuitId], references: [id])
+  lawsuitId   Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Client {
+  id          Int        @id @default(autoincrement())
+  name        String
+  surname     String
+  clientType  ClientType @default(INDIVIDUAL)
+  taxNumber   String?
+  companyName String?
+  contacts    Contact[]
+  addresses   Address[]
+  tasks       Task[]
+  lawsuits    Lawsuit[]
+  createdBy   User       @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Lawsuit {
+  id            Int        @id @default(autoincrement())
+  caseNumber    String     @unique
+  caseType      String
+  court         String
+  status        CaseStatus @default(ACTIVE)
+  description   String?
+  startDate     DateTime
+  endDate       DateTime?
+  client        Client     @relation(fields: [clientId], references: [id])
+  clientId      Int
+  tasks         Task[]
+  lawyer        User       @relation("LawyerCreated", fields: [lawyerId], references: [id])
+  lawyerId      Int
+  opposingParty String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Address {
+  id          Int         @id @default(autoincrement())
+  addressLine String
+  city        String
+  district    String?
+  postalCode  String?
+  country     String      @default("Türkiye")
+  addressType AddressType @default(HOME)
+  client      Client      @relation(fields: [clientId], references: [id])
+  clientId    Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum Role {
+  ADMIN
+  LAWYER
+  SECRETARY
+  USER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ContactType {
+  EMAIL
+  PHONE
+  MOBILE
+  FAX
+  OTHER
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ClientType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum CaseStatus {
+  ACTIVE
+  CLOSED
+  SUSPENDED
+  WON
+  LOST
+}
+
+enum AddressType {
+  HOME
+  WORK
+  BILLING
+  OTHER
+}
