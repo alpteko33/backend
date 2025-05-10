@@ -19,8 +19,15 @@ model Kullanici {
   sifre                     String
   ad                        String
   soyad                     String
-  rol                       Rol      @default(KULLANICI)
+  rol                       Rol      @default(AVUKAT)
   durum                     Durum    @default(AKTIF)
+  baroNo                    String?  // Avukatlar için baro numarası
+  tcKimlikNo                String?  // TC Kimlik numarası
+  telefonNo                 String?  // Telefon numarası
+  adres                     String?  // Adres bilgisi
+  profilResmi               String?  // Profil resmi yolu
+  sonSenkronizasyonTarihi   DateTime? // Son UYAP senkronizasyon tarihi
+  senkronizasyonDurumu      SenkronizasyonDurumu @default(BEKLEMEDE)
   olusturulmaTarihi         DateTime @default(now())
   guncellenmeTarihi         DateTime @updatedAt
   gorevler                  Gorev[]
@@ -29,6 +36,12 @@ model Kullanici {
   yuklenenDosyalar          Dosya[] @relation("KullaniciDosya")
   olusturulanGorevListeleri GorevListesi[] @relation("OlusturanKullaniciGorevListesi")
   davetEdildigiGorevListeleri GorevListesiKullanici[]
+  personeller              Personel[] @relation("YoneticiPersonel")
+  olusturulanNotlar        Not[]
+  irtibatlar               Irtibat[] @relation("KullaniciIrtibat")
+  evraklar                 Evrak[] @relation("KullaniciEvrak")
+  finansIslemleri          FinansIslemi[] @relation("KullaniciFinans")
+  calismaArkadaslari       CalismaArkadasi[] @relation("KullaniciCalismaArkadasi")
 }
 
 model Iletisim {
@@ -38,45 +51,55 @@ model Iletisim {
   aciklama                  String?
   muvekkil                  Muvekkil? @relation(fields: [muvekkilId], references: [id])
   muvekkilId                Int?
+  irtibat                   Irtibat?  @relation(fields: [irtibatId], references: [id])
+  irtibatId                 Int?
+  personel                  Personel? @relation(fields: [personelId], references: [id])
+  personelId                Int?
+  calismaArkadasi           CalismaArkadasi? @relation(fields: [calismaArkadasiId], references: [id])
+  calismaArkadasiId         Int?
   olusturulmaTarihi         DateTime  @default(now())
   guncellemeTarihi          DateTime  @updatedAt
 }
 
 model Gorev {
   id                        Int       @id @default(autoincrement())
-  baslik                    String
+  baslik                    String    // Görev başlığı
   aciklama                  String?
   sonTarih                  DateTime?
   oncelik                   Oncelik   @default(NORMAL)
   durum                     GorevDurumu @default(BEKLEMEDE)
   atananKullanici           Kullanici @relation(fields: [kullaniciId], references: [id])
   kullaniciId               Int
-  muvekkil                  Muvekkil? @relation(fields: [muvekkilId], references: [id])
-  muvekkilId                Int?
-  dava                      Dava?     @relation(fields: [davaId], references: [id])
-  davaId                    Int?
   olusturulmaTarihi         DateTime  @default(now())
   guncellemeTarihi          DateTime  @updatedAt
-  adimlar                  Adim[]
-  dosyalar                 Dosya[]
-  liste                    GorevListesi? @relation(fields: [listeId], references: [id])
-  listeId                  Int?
-  gunumGorunumunde         Boolean?
-  banaAnimsat              DateTime?
-  yinelenen                Boolean?
+  adimlar                   Adim[]
+  dosyalar                  Dosya[]
+  liste                     GorevListesi? @relation(fields: [listeId], references: [id])
+  listeId                   Int?
+  gunumGorunumunde          Boolean    @default(false)
+  banaAnimsat               DateTime?
+  yinelenen                 Boolean    @default(false)
+  dava                      Dava?      @relation(fields: [davaId], references: [id])
+  davaId                    Int?
 }
 
 model Muvekkil {
   id                        Int       @id @default(autoincrement())
-  ad                        String
-  soyad                     String
+  ad                        String?
+  soyad                     String?
   muvekkilTipi              MuvekkilTipi @default(BIREYSEL)
   vergiNumarasi             String?
+  tcKimlikNo                String?   // TC Kimlik Numarası
   firmaAdi                  String?
+  telefonNo                 String?   // Telefon numarası
+  eposta                    String?   // E-posta adresi
+  tarafSifati               String?   // Taraf sıfatı (davacı, davalı, vb.)
   iletisimler               Iletisim[]
   adresler                  Adres[]
-  gorevler                  Gorev[]
   davalar                   Dava[]
+  notlar                    Not[]     // Müvekkile ait notlar
+  evraklar                  Evrak[]   // Müvekkile ait evraklar
+  finansIslemleri           FinansIslemi[] // Müvekkile ait finans işlemleri
   olusturanKullanici        Kullanici @relation("OlusturanKullanici", fields: [olusturanKullaniciId], references: [id])
   olusturanKullaniciId      Int
   olusturulmaTarihi         DateTime  @default(now())
@@ -85,35 +108,45 @@ model Muvekkil {
 
 model Dava {
   id                        Int       @id @default(autoincrement())
-  davaNumarasi              String    @unique
-  davaTipi                  String
+  dosyaNumarasi             String    @unique
+  dosyaTuru                 String
   mahkeme                   String
+  yargiDairesi              String?   // Yargı dairesi/birimi
   durum                     DavaDurumu @default(AKTIF)
-  aciklama                  String?
-  baslangicTarihi           DateTime
-  bitisTarihi               DateTime?
+  dosyaAcilisTarihi         DateTime
   muvekkil                  Muvekkil  @relation(fields: [muvekkilId], references: [id])
   muvekkilId                Int
   gorevler                  Gorev[]
+  notlar                    Not[]     // Davaya ait notlar
   avukat                    Kullanici @relation("AvukatOlusturan", fields: [avukatId], references: [id])
   avukatId                  Int
   karsiTaraf                String?
+  karsiTarafAvukati         String?   // Karşı tarafın avukat bilgisi
+  acikKapali                AcikKapali @default(ACIK)
+  evraklar                  Evrak[]   // Davaya ait evraklar
+  finansIslemleri           FinansIslemi[] // Davaya ait finans işlemleri
   olusturulmaTarihi         DateTime  @default(now())
   guncellemeTarihi          DateTime  @updatedAt
 }
 
 model Adres {
   id                        Int       @id @default(autoincrement())
-  adresSatiri              String
-  sehir                    String
-  ilce                     String?
-  postaKodu                String?
-  ulke                     String    @default("Türkiye")
-  adresTipi                AdresTipi @default(EV)
-  muvekkil                 Muvekkil  @relation(fields: [muvekkilId], references: [id])
-  muvekkilId               Int
-  olusturulmaTarihi        DateTime  @default(now())
-  guncellemeTarihi         DateTime  @updatedAt
+  adresSatiri               String
+  sehir                     String
+  ilce                      String?
+  postaKodu                 String?
+  ulke                      String    @default("Türkiye")
+  adresTipi                 AdresTipi @default(EV)
+  muvekkil                  Muvekkil? @relation(fields: [muvekkilId], references: [id])
+  muvekkilId                Int?
+  personel                  Personel? @relation(fields: [personelId], references: [id])
+  personelId                Int?
+  calismaArkadasi           CalismaArkadasi? @relation(fields: [calismaArkadasiId], references: [id])
+  calismaArkadasiId         Int?
+  irtibat                   Irtibat?  @relation(fields: [irtibatId], references: [id])
+  irtibatId                 Int?
+  olusturulmaTarihi         DateTime  @default(now())
+  guncellemeTarihi          DateTime  @updatedAt
 }
 
 model Adim {
@@ -131,21 +164,28 @@ model Dosya {
   id                Int      @id @default(autoincrement())
   dosyaAdi          String   // Dosyanın adı
   dosyaYolu         String   // Dosyanın sistemdeki yolu veya URL'si
-  gorev             Gorev    @relation(fields: [gorevId], references: [id])
-  gorevId           Int
+  dosyaTipi         String?  // Dosya tipi (docx, pdf, vb.)
+  boyut             Float?   // Dosya boyutu (KB/MB)
+  gorev             Gorev?   @relation(fields: [gorevId], references: [id])
+  gorevId           Int?
   yukleyen          Kullanici @relation(fields: [kullaniciId], references: [id], name: "KullaniciDosya")
   kullaniciId       Int
+  evrak             Evrak?   @relation(fields: [evrakId], references: [id])
+  evrakId           Int?
   olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
 }
 
 model GorevListesi {
   id                Int      @id @default(autoincrement())
   ad                String   // Listenin adı
+  aciklama          String?  // Liste açıklaması
   olusturan         Kullanici @relation(fields: [olusturanId], references: [id], name: "OlusturanKullaniciGorevListesi")
   olusturanId       Int
   gorevler          Gorev[]  // Bu listeye ait görevler
   kullanicilar      GorevListesiKullanici[] // Paylaşılan kullanıcılar
   olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
 }
 
 model GorevListesiKullanici {
@@ -155,12 +195,124 @@ model GorevListesiKullanici {
   kullanici         Kullanici @relation(fields: [kullaniciId], references: [id])
   kullaniciId       Int
   davetTarihi       DateTime @default(now())
+  durumu            Durum    @default(AKTIF)
+}
+
+model Not {
+  id                Int      @id @default(autoincrement())
+  baslik            String?  // Not başlığı
+  icerik            String   // Not içeriği
+  notTuru           NotTuru  // Not türü
+  etiketler         String?  // Virgülle ayrılmış etiketler
+  onemDurumu        OnemDurumu @default(NORMAL) // Notun önem durumu
+  hatirlatmaTarihi  DateTime? // Hatırlatma tarihi
+  meblaga           Float?   // Not için belirlenen meblağ
+  olusturan         Kullanici @relation(fields: [olusturanId], references: [id])
+  olusturanId       Int
+  ilgiliMuvekkil    Muvekkil? @relation(fields: [muvekkilId], references: [id])
+  muvekkilId        Int?
+  ilgiliDava        Dava?    @relation(fields: [davaId], references: [id])
+  davaId            Int?
+  olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
+}
+
+model Personel {
+  id                Int      @id @default(autoincrement())
+  ad                String
+  soyad             String
+  tcKimlikNo        String?  // TC Kimlik numarası
+  telefonNo         String?  // Telefon numarası
+  eposta            String?  // E-posta
+  gorevi            String   // Personelin görevi (avukat, stajyer, katip, muhasebeci vb.)
+  maas              Float?   // Maaş bilgisi
+  iseBaslamaTarihi  DateTime? // İşe başlama tarihi
+  adresler          Adres[]
+  iletisimler       Iletisim[]
+  yonetici          Kullanici @relation("YoneticiPersonel", fields: [yoneticiId], references: [id])
+  yoneticiId        Int
+  olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
+}
+
+model Irtibat {
+  id                Int      @id @default(autoincrement())
+  ad                String
+  soyad             String
+  tcKimlikNo        String?  // TC Kimlik numarası
+  telefonNo         String?  // Telefon numarası
+  eposta            String?  // E-posta
+  baroNo            String?  // Baro numarası (avukatlar için)
+  adresler          Adres[]
+  iletisimler       Iletisim[]
+  irtibatTuru       IrtibatTuru // İrtibat türü
+  konusu            String?  // İrtibatla ilgili konu/açıklama
+  planlananTarih    DateTime? // Planlanan görüşme tarihi
+  kullanici         Kullanici @relation("KullaniciIrtibat", fields: [kullaniciId], references: [id])
+  kullaniciId       Int
+  olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
+}
+
+model Evrak {
+  id                Int      @id @default(autoincrement())
+  ad                String   // Evrak adı
+  evrakTuru         EvrakTuru // Evrak türü
+  dosyaNo           String?  // Evrak dosya numarası
+  aciklama          String?  // Evrak açıklaması
+  dosyalar          Dosya[]  // Evraka ait dosyalar
+  ilgiliMuvekkil    Muvekkil? @relation(fields: [muvekkilId], references: [id])
+  muvekkilId        Int?
+  ilgiliDava        Dava?    @relation(fields: [davaId], references: [id])
+  davaId            Int?
+  olusturan         Kullanici @relation("KullaniciEvrak", fields: [olusturanId], references: [id])
+  olusturanId       Int
+  olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
+}
+
+model FinansIslemi {
+  id                Int      @id @default(autoincrement())
+  islemTuru         FinansTuru // İşlem türü (gelir/gider)
+  miktar            Float    // İşlem miktarı
+  aciklama          String?  // İşlem açıklaması
+  islemTarihi       DateTime // İşlem tarihi
+  odemeKanali       OdemeKanali? // Ödeme kanalı (nakit, banka, vs.)
+  kategori          String?  // İşlem kategorisi
+  durum             FinansDurumu @default(ONAYLANMADI) // İşlem durumu
+  ilgiliMuvekkil    Muvekkil? @relation(fields: [muvekkilId], references: [id])
+  muvekkilId        Int?
+  ilgiliDava        Dava?    @relation(fields: [davaId], references: [id])
+  davaId            Int?
+  kullanici         Kullanici @relation("KullaniciFinans", fields: [kullaniciId], references: [id])
+  kullaniciId       Int
+  olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
+}
+
+model CalismaArkadasi {
+  id                Int      @id @default(autoincrement())
+  ad                String
+  soyad             String
+  tcKimlikNo        String?  // TC Kimlik numarası
+  telefonNo         String?  // Telefon numarası
+  eposta            String?  // E-posta
+  baroNo            String?  // Baro numarası (avukatlar için)
+  adresler          Adres[]
+  iletisimler       Iletisim[]
+  kullanici         Kullanici @relation("KullaniciCalismaArkadasi", fields: [kullaniciId], references: [id])
+  kullaniciId       Int
+  olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
 }
 
 enum Rol {
   YONETICI
   AVUKAT
   SEKRETER
+  KATIP
+  STAJYER
+  MUHASEBECI
   KULLANICI
 }
 
@@ -175,7 +327,7 @@ enum IletisimTipi {
   TELEFON
   MOBIL
   FAKS
-  DİGER
+  DIGER
 }
 
 enum Oncelik {
@@ -210,5 +362,74 @@ enum AdresTipi {
   EV
   IS
   FATURA
-  DİGER
+  DIGER
+}
+
+enum SenkronizasyonDurumu {
+  BEKLEMEDE
+  SENKRONIZE_EDILIYOR
+  TAMAMLANDI
+  BASARISIZ
+  ERTELENDI
+}
+
+enum NotTuru {
+  MUVEKKIL_NOTU
+  IRTIBAT_NOTU
+  DAVA_NOTU
+  ICRA_NOTU
+}
+
+enum OnemDurumu {
+  NORMAL
+  ONEMLI
+  ACIL
+  ZAMANLI
+}
+
+enum EvrakTuru {
+  STAJYER
+  GORUSME_TUTANAGI
+  DILEKCE
+  BILGILENDIRME_RAPORU
+  FATURA
+  KVKK_METNI
+  MAHKEME_KARARI
+  SÖZLEŞME
+  DIGER
+}
+
+enum IrtibatTuru {
+  AVUKAT
+  HAKIM
+  SAVCI
+  BILIRKISI
+  DANISMANLIK
+  DIGER
+}
+
+enum AcikKapali {
+  ACIK
+  KAPALI
+}
+
+enum FinansTuru {
+  GELIR
+  GIDER
+  DUZENSIZ_GELIR
+  DUZENSIZ_GIDER
+}
+
+enum FinansDurumu {
+  ONAYLANDI
+  ONAYLANMADI
+  BEKLEMEDE
+}
+
+enum OdemeKanali {
+  NAKIT
+  BANKA
+  KREDI_KARTI
+  EFT_HAVALE
+  DIGER
 }
