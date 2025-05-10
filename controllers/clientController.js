@@ -1,234 +1,200 @@
 const prisma = require('../db');
 
-// Tüm müşterileri getir
+// Tüm müvekkilleri getir
 exports.getAllClients = async (req, res) => {
   try {
-    const clients = await prisma.client.findMany({
+    const muvekkiller = await prisma.muvekkil.findMany({
       include: {
-        contacts: true,
-        addresses: true,
+        iletisimler: true,
+        adresler: true,
+        gorevler: true,
+        davalar: true,
       },
     });
-    res.json(clients);
+    res.json(muvekkiller);
   } catch (error) {
-    res.status(500).json({ message: 'Müşteriler getirilirken hata oluştu', error: error.message });
+    res.status(500).json({ message: 'Müvekkiller getirilirken hata oluştu', error: error.message });
   }
 };
 
-// Müşteri detayını getir
+// Müvekkil detayını getir
 exports.getClientById = async (req, res) => {
   try {
     const { id } = req.params;
-    const client = await prisma.client.findUnique({
+    const muvekkil = await prisma.muvekkil.findUnique({
       where: { id: Number(id) },
       include: {
-        contacts: true,
-        addresses: true,
-        lawsuits: true,
-        tasks: true,
+        iletisimler: true,
+        adresler: true,
+        davalar: true,
+        gorevler: true,
       },
     });
-    
-    if (!client) {
-      return res.status(404).json({ message: 'Müşteri bulunamadı' });
+    if (!muvekkil) {
+      return res.status(404).json({ message: 'Müvekkil bulunamadı' });
     }
-    
-    res.json(client);
+    res.json(muvekkil);
   } catch (error) {
-    res.status(500).json({ message: 'Müşteri getirilirken hata oluştu', error: error.message });
+    res.status(500).json({ message: 'Müvekkil getirilirken hata oluştu', error: error.message });
   }
 };
 
-// Yeni müşteri oluştur
+// Yeni müvekkil oluştur
 exports.createClient = async (req, res) => {
   try {
-    const { 
-      name, 
-      surname, 
-      clientType, 
-      taxNumber, 
-      companyName, 
-      contacts, 
-      addresses 
-    } = req.body;
-    
-    // Kullanıcı ID'si (gerçek uygulamada kimlik doğrulama sisteminden gelecek)
-    const createdById = req.user?.id || 1; // Varsayılan olarak 1 kullanılıyor
-    
-    const newClient = await prisma.client.create({
+    const { ad, soyad, muvekkilTipi, vergiNumarasi, firmaAdi, iletisimler, adresler } = req.body;
+    const olusturanKullaniciId = req.user?.id || 1;
+    const yeniMuvekkil = await prisma.muvekkil.create({
       data: {
-        name,
-        surname,
-        clientType: clientType || 'INDIVIDUAL',
-        taxNumber,
-        companyName,
-        createdById,
-        // İlişkili iletişim bilgilerini oluştur
-        contacts: contacts ? {
-          create: contacts.map(contact => ({
-            type: contact.type,
-            value: contact.value,
-            description: contact.description,
+        ad,
+        soyad,
+        muvekkilTipi: muvekkilTipi || 'BIREYSEL',
+        vergiNumarasi,
+        firmaAdi,
+        olusturanKullaniciId,
+        iletisimler: iletisimler ? {
+          create: iletisimler.map(iletisim => ({
+            tip: iletisim.tip,
+            deger: iletisim.deger,
+            aciklama: iletisim.aciklama,
           }))
         } : undefined,
-        // İlişkili adres bilgilerini oluştur
-        addresses: addresses ? {
-          create: addresses.map(address => ({
-            addressLine: address.addressLine,
-            city: address.city,
-            district: address.district,
-            postalCode: address.postalCode,
-            country: address.country || 'Türkiye',
-            addressType: address.addressType || 'HOME',
+        adresler: adresler ? {
+          create: adresler.map(adres => ({
+            adresSatiri: adres.adresSatiri,
+            sehir: adres.sehir,
+            ilce: adres.ilce,
+            postaKodu: adres.postaKodu,
+            ulke: adres.ulke || 'Türkiye',
+            adresTipi: adres.adresTipi || 'EV',
           }))
         } : undefined,
       },
       include: {
-        contacts: true,
-        addresses: true,
+        iletisimler: true,
+        adresler: true,
+        gorevler: true,
+        davalar: true,
       },
     });
-    
-    res.status(201).json(newClient);
+    res.status(201).json(yeniMuvekkil);
   } catch (error) {
-    res.status(500).json({ message: 'Müşteri oluşturulurken hata oluştu', error: error.message });
+    res.status(500).json({ message: 'Müvekkil oluşturulurken hata oluştu', error: error.message });
   }
 };
 
-// Müşteri güncelle
+// Müvekkil güncelle
 exports.updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      name, 
-      surname, 
-      clientType, 
-      taxNumber, 
-      companyName
-    } = req.body;
-    
-    // Önce müşterinin var olup olmadığını kontrol et
-    const existingClient = await prisma.client.findUnique({
+    const { ad, soyad, muvekkilTipi, vergiNumarasi, firmaAdi } = req.body;
+    const mevcutMuvekkil = await prisma.muvekkil.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingClient) {
-      return res.status(404).json({ message: 'Müşteri bulunamadı' });
+    if (!mevcutMuvekkil) {
+      return res.status(404).json({ message: 'Müvekkil bulunamadı' });
     }
-    
-    const updatedClient = await prisma.client.update({
+    const guncellenenMuvekkil = await prisma.muvekkil.update({
       where: { id: Number(id) },
       data: {
-        name: name || undefined,
-        surname: surname || undefined,
-        clientType: clientType || undefined,
-        taxNumber: taxNumber || undefined,
-        companyName: companyName || undefined,
+        ad: ad || undefined,
+        soyad: soyad || undefined,
+        muvekkilTipi: muvekkilTipi || undefined,
+        vergiNumarasi: vergiNumarasi || undefined,
+        firmaAdi: firmaAdi || undefined,
       },
       include: {
-        contacts: true,
-        addresses: true,
+        iletisimler: true,
+        adresler: true,
+        gorevler: true,
+        davalar: true,
       },
     });
-    
-    res.json(updatedClient);
+    res.json(guncellenenMuvekkil);
   } catch (error) {
-    res.status(500).json({ message: 'Müşteri güncellenirken hata oluştu', error: error.message });
+    res.status(500).json({ message: 'Müvekkil güncellenirken hata oluştu', error: error.message });
   }
 };
 
-// Müşteri sil
+// Müvekkil sil
 exports.deleteClient = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Önce müşterinin var olup olmadığını kontrol et
-    const existingClient = await prisma.client.findUnique({
+    const mevcutMuvekkil = await prisma.muvekkil.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingClient) {
-      return res.status(404).json({ message: 'Müşteri bulunamadı' });
+    if (!mevcutMuvekkil) {
+      return res.status(404).json({ message: 'Müvekkil bulunamadı' });
     }
-    
-    // İlişkili tüm contact ve address kayıtlarını sil
-    await prisma.contact.deleteMany({
-      where: { clientId: Number(id) },
+    await prisma.iletisim.deleteMany({
+      where: { muvekkilId: Number(id) },
     });
-    
-    await prisma.address.deleteMany({
-      where: { clientId: Number(id) },
+    await prisma.adres.deleteMany({
+      where: { muvekkilId: Number(id) },
     });
-    
-    // Müşteriyi sil
-    await prisma.client.delete({
+    await prisma.gorev.deleteMany({
+      where: { muvekkilId: Number(id) },
+    });
+    await prisma.dava.deleteMany({
+      where: { muvekkilId: Number(id) },
+    });
+    await prisma.muvekkil.delete({
       where: { id: Number(id) },
     });
-    
-    res.json({ message: 'Müşteri başarıyla silindi' });
+    res.json({ message: 'Müvekkil başarıyla silindi' });
   } catch (error) {
-    res.status(500).json({ message: 'Müşteri silinirken hata oluştu', error: error.message });
+    res.status(500).json({ message: 'Müvekkil silinirken hata oluştu', error: error.message });
   }
 };
 
-// Müşteriye yeni iletişim bilgisi ekle
+// Müvekkile yeni iletişim bilgisi ekle
 exports.addContact = async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, value, description } = req.body;
-    
-    // Önce müşterinin var olup olmadığını kontrol et
-    const existingClient = await prisma.client.findUnique({
+    const { tip, deger, aciklama } = req.body;
+    const mevcutMuvekkil = await prisma.muvekkil.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingClient) {
-      return res.status(404).json({ message: 'Müşteri bulunamadı' });
+    if (!mevcutMuvekkil) {
+      return res.status(404).json({ message: 'Müvekkil bulunamadı' });
     }
-    
-    const newContact = await prisma.contact.create({
+    const yeniIletisim = await prisma.iletisim.create({
       data: {
-        type,
-        value,
-        description,
-        clientId: Number(id),
+        tip,
+        deger,
+        aciklama,
+        muvekkilId: Number(id),
       },
     });
-    
-    res.status(201).json(newContact);
+    res.status(201).json(yeniIletisim);
   } catch (error) {
     res.status(500).json({ message: 'İletişim bilgisi eklenirken hata oluştu', error: error.message });
   }
 };
 
-// Müşteriye yeni adres bilgisi ekle
+// Müvekkile yeni adres bilgisi ekle
 exports.addAddress = async (req, res) => {
   try {
     const { id } = req.params;
-    const { addressLine, city, district, postalCode, country, addressType } = req.body;
-    
-    // Önce müşterinin var olup olmadığını kontrol et
-    const existingClient = await prisma.client.findUnique({
+    const { adresSatiri, sehir, ilce, postaKodu, ulke, adresTipi } = req.body;
+    const mevcutMuvekkil = await prisma.muvekkil.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingClient) {
-      return res.status(404).json({ message: 'Müşteri bulunamadı' });
+    if (!mevcutMuvekkil) {
+      return res.status(404).json({ message: 'Müvekkil bulunamadı' });
     }
-    
-    const newAddress = await prisma.address.create({
+    const yeniAdres = await prisma.adres.create({
       data: {
-        addressLine,
-        city,
-        district,
-        postalCode,
-        country: country || 'Türkiye',
-        addressType: addressType || 'HOME',
-        clientId: Number(id),
+        adresSatiri,
+        sehir,
+        ilce,
+        postaKodu,
+        ulke: ulke || 'Türkiye',
+        adresTipi: adresTipi || 'EV',
+        muvekkilId: Number(id),
       },
     });
-    
-    res.status(201).json(newAddress);
+    res.status(201).json(yeniAdres);
   } catch (error) {
     res.status(500).json({ message: 'Adres bilgisi eklenirken hata oluştu', error: error.message });
   }

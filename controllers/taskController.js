@@ -3,33 +3,36 @@ const prisma = require('../db');
 // Tüm görevleri getir
 exports.getAllTasks = async (req, res) => {
   try {
-    const tasks = await prisma.task.findMany({
+    const gorevler = await prisma.gorev.findMany({
       include: {
-        assignedTo: {
+        atananKullanici: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
-        client: {
+        muvekkil: {
           select: {
             id: true,
-            name: true,
-            surname: true,
+            ad: true,
+            soyad: true,
           }
         },
-        lawsuit: {
+        dava: {
           select: {
             id: true,
-            caseNumber: true,
-            caseType: true,
+            davaNumarasi: true,
+            davaTipi: true,
           }
-        }
+        },
+        adimlar: true,
+        dosyalar: true,
+        liste: true,
       },
     });
-    res.json(tasks);
+    res.json(gorevler);
   } catch (error) {
     res.status(500).json({ message: 'Görevler getirilirken hata oluştu', error: error.message });
   }
@@ -39,41 +42,42 @@ exports.getAllTasks = async (req, res) => {
 exports.getTaskById = async (req, res) => {
   try {
     const { id } = req.params;
-    const task = await prisma.task.findUnique({
+    const gorev = await prisma.gorev.findUnique({
       where: { id: Number(id) },
       include: {
-        assignedTo: {
+        atananKullanici: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
-        client: {
+        muvekkil: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            contacts: true,
+            ad: true,
+            soyad: true,
+            iletisimler: true,
           }
         },
-        lawsuit: {
+        dava: {
           select: {
             id: true,
-            caseNumber: true,
-            caseType: true,
-            court: true,
+            davaNumarasi: true,
+            davaTipi: true,
+            mahkeme: true,
           }
-        }
+        },
+        adimlar: true,
+        dosyalar: true,
+        liste: true,
       },
     });
-    
-    if (!task) {
+    if (!gorev) {
       return res.status(404).json({ message: 'Görev bulunamadı' });
     }
-    
-    res.json(task);
+    res.json(gorev);
   } catch (error) {
     res.status(500).json({ message: 'Görev getirilirken hata oluştu', error: error.message });
   }
@@ -82,84 +86,72 @@ exports.getTaskById = async (req, res) => {
 // Yeni görev oluştur
 exports.createTask = async (req, res) => {
   try {
-    const { 
-      title, 
-      description, 
-      dueDate, 
-      priority, 
-      userId, 
-      clientId,
-      lawsuitId
-    } = req.body;
-    
-    // Kullanıcı kontrolü
-    const user = await prisma.user.findUnique({
-      where: { id: Number(userId) },
+    const { baslik, aciklama, sonTarih, oncelik, kullaniciId, muvekkilId, davaId, listeId, gunumGorunumunde, banaAnimsat, yinelenen } = req.body;
+    const kullanici = await prisma.kullanici.findUnique({
+      where: { id: Number(kullaniciId) },
     });
-    
-    if (!user) {
+    if (!kullanici) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
-    
-    // Müşteri kontrolü (eğer belirtildiyse)
-    if (clientId) {
-      const client = await prisma.client.findUnique({
-        where: { id: Number(clientId) },
+    if (muvekkilId) {
+      const muvekkil = await prisma.muvekkil.findUnique({
+        where: { id: Number(muvekkilId) },
       });
-      
-      if (!client) {
-        return res.status(404).json({ message: 'Müşteri bulunamadı' });
+      if (!muvekkil) {
+        return res.status(404).json({ message: 'Müvekkil bulunamadı' });
       }
     }
-    
-    // Dava kontrolü (eğer belirtildiyse)
-    if (lawsuitId) {
-      const lawsuit = await prisma.lawsuit.findUnique({
-        where: { id: Number(lawsuitId) },
+    if (davaId) {
+      const dava = await prisma.dava.findUnique({
+        where: { id: Number(davaId) },
       });
-      
-      if (!lawsuit) {
+      if (!dava) {
         return res.status(404).json({ message: 'Dava bulunamadı' });
       }
     }
-    
-    const newTask = await prisma.task.create({
+    const yeniGorev = await prisma.gorev.create({
       data: {
-        title,
-        description,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        priority: priority || 'NORMAL',
-        userId: Number(userId),
-        clientId: clientId ? Number(clientId) : null,
-        lawsuitId: lawsuitId ? Number(lawsuitId) : null,
+        baslik,
+        aciklama,
+        sonTarih: sonTarih ? new Date(sonTarih) : null,
+        oncelik: oncelik || 'NORMAL',
+        kullaniciId: Number(kullaniciId),
+        muvekkilId: muvekkilId ? Number(muvekkilId) : null,
+        davaId: davaId ? Number(davaId) : null,
+        listeId: listeId ? Number(listeId) : null,
+        gunumGorunumunde: gunumGorunumunde || false,
+        banaAnimsat: banaAnimsat ? new Date(banaAnimsat) : null,
+        yinelenen: yinelenen || false,
       },
       include: {
-        assignedTo: {
+        atananKullanici: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
-        client: clientId ? {
+        muvekkil: muvekkilId ? {
           select: {
             id: true,
-            name: true,
-            surname: true,
+            ad: true,
+            soyad: true,
           }
         } : undefined,
-        lawsuit: lawsuitId ? {
+        dava: davaId ? {
           select: {
             id: true,
-            caseNumber: true,
-            caseType: true,
+            davaNumarasi: true,
+            davaTipi: true,
           }
         } : undefined,
+        adimlar: true,
+        dosyalar: true,
+        liste: true,
       },
     });
-    
-    res.status(201).json(newTask);
+    res.status(201).json(yeniGorev);
   } catch (error) {
     res.status(500).json({ message: 'Görev oluşturulurken hata oluştu', error: error.message });
   }
@@ -169,98 +161,82 @@ exports.createTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      title, 
-      description, 
-      dueDate, 
-      priority, 
-      status,
-      userId, 
-      clientId,
-      lawsuitId
-    } = req.body;
-    
-    // Görevin var olup olmadığını kontrol et
-    const existingTask = await prisma.task.findUnique({
+    const { baslik, aciklama, sonTarih, oncelik, durum, kullaniciId, muvekkilId, davaId, listeId, gunumGorunumunde, banaAnimsat, yinelenen } = req.body;
+    const mevcutGorev = await prisma.gorev.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingTask) {
+    if (!mevcutGorev) {
       return res.status(404).json({ message: 'Görev bulunamadı' });
     }
-    
-    // Kullanıcı değiştiyse kullanıcının var olup olmadığını kontrol et
-    if (userId && userId !== existingTask.userId) {
-      const user = await prisma.user.findUnique({
-        where: { id: Number(userId) },
+    if (kullaniciId && kullaniciId !== mevcutGorev.kullaniciId) {
+      const kullanici = await prisma.kullanici.findUnique({
+        where: { id: Number(kullaniciId) },
       });
-      
-      if (!user) {
+      if (!kullanici) {
         return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
       }
     }
-    
-    // Müşteri değiştiyse müşterinin var olup olmadığını kontrol et
-    if (clientId && clientId !== existingTask.clientId) {
-      const client = await prisma.client.findUnique({
-        where: { id: Number(clientId) },
+    if (muvekkilId && muvekkilId !== mevcutGorev.muvekkilId) {
+      const muvekkil = await prisma.muvekkil.findUnique({
+        where: { id: Number(muvekkilId) },
       });
-      
-      if (!client) {
-        return res.status(404).json({ message: 'Müşteri bulunamadı' });
+      if (!muvekkil) {
+        return res.status(404).json({ message: 'Müvekkil bulunamadı' });
       }
     }
-    
-    // Dava değiştiyse davanın var olup olmadığını kontrol et
-    if (lawsuitId && lawsuitId !== existingTask.lawsuitId) {
-      const lawsuit = await prisma.lawsuit.findUnique({
-        where: { id: Number(lawsuitId) },
+    if (davaId && davaId !== mevcutGorev.davaId) {
+      const dava = await prisma.dava.findUnique({
+        where: { id: Number(davaId) },
       });
-      
-      if (!lawsuit) {
+      if (!dava) {
         return res.status(404).json({ message: 'Dava bulunamadı' });
       }
     }
-    
-    const updatedTask = await prisma.task.update({
+    const guncellenenGorev = await prisma.gorev.update({
       where: { id: Number(id) },
       data: {
-        title: title || undefined,
-        description: description || undefined,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
-        priority: priority || undefined,
-        status: status || undefined,
-        userId: userId ? Number(userId) : undefined,
-        clientId: clientId ? Number(clientId) : undefined,
-        lawsuitId: lawsuitId ? Number(lawsuitId) : undefined,
+        baslik: baslik || undefined,
+        aciklama: aciklama || undefined,
+        sonTarih: sonTarih ? new Date(sonTarih) : undefined,
+        oncelik: oncelik || undefined,
+        durum: durum || undefined,
+        kullaniciId: kullaniciId ? Number(kullaniciId) : undefined,
+        muvekkilId: muvekkilId ? Number(muvekkilId) : undefined,
+        davaId: davaId ? Number(davaId) : undefined,
+        listeId: listeId ? Number(listeId) : undefined,
+        gunumGorunumunde: gunumGorunumunde || undefined,
+        banaAnimsat: banaAnimsat ? new Date(banaAnimsat) : undefined,
+        yinelenen: yinelenen || undefined,
       },
       include: {
-        assignedTo: {
+        atananKullanici: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
-        client: {
+        muvekkil: {
           select: {
             id: true,
-            name: true,
-            surname: true,
+            ad: true,
+            soyad: true,
           }
         },
-        lawsuit: {
+        dava: {
           select: {
             id: true,
-            caseNumber: true,
-            caseType: true,
+            davaNumarasi: true,
+            davaTipi: true,
           }
-        }
+        },
+        adimlar: true,
+        dosyalar: true,
+        liste: true,
       },
     });
-    
-    res.json(updatedTask);
+    res.json(guncellenenGorev);
   } catch (error) {
     res.status(500).json({ message: 'Görev güncellenirken hata oluştu', error: error.message });
   }
@@ -270,21 +246,15 @@ exports.updateTask = async (req, res) => {
 exports.deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Görevin var olup olmadığını kontrol et
-    const existingTask = await prisma.task.findUnique({
+    const mevcutGorev = await prisma.gorev.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingTask) {
+    if (!mevcutGorev) {
       return res.status(404).json({ message: 'Görev bulunamadı' });
     }
-    
-    // Görevi sil
-    await prisma.task.delete({
+    await prisma.gorev.delete({
       where: { id: Number(id) },
     });
-    
     res.json({ message: 'Görev başarıyla silindi' });
   } catch (error) {
     res.status(500).json({ message: 'Görev silinirken hata oluştu', error: error.message });
@@ -294,38 +264,36 @@ exports.deleteTask = async (req, res) => {
 // Kullanıcıya göre görevleri getir
 exports.getTasksByUser = async (req, res) => {
   try {
-    const { userId } = req.params;
-    
-    // Kullanıcının var olup olmadığını kontrol et
-    const user = await prisma.user.findUnique({
-      where: { id: Number(userId) },
+    const { kullaniciId } = req.params;
+    const kullanici = await prisma.kullanici.findUnique({
+      where: { id: Number(kullaniciId) },
     });
-    
-    if (!user) {
+    if (!kullanici) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
-    
-    const tasks = await prisma.task.findMany({
-      where: { userId: Number(userId) },
+    const gorevler = await prisma.gorev.findMany({
+      where: { kullaniciId: Number(kullaniciId) },
       include: {
-        client: {
+        muvekkil: {
           select: {
             id: true,
-            name: true,
-            surname: true,
+            ad: true,
+            soyad: true,
           }
         },
-        lawsuit: {
+        dava: {
           select: {
             id: true,
-            caseNumber: true,
-            caseType: true,
+            davaNumarasi: true,
+            davaTipi: true,
           }
-        }
+        },
+        adimlar: true,
+        dosyalar: true,
+        liste: true,
       },
     });
-    
-    res.json(tasks);
+    res.json(gorevler);
   } catch (error) {
     res.status(500).json({ message: 'Görevler getirilirken hata oluştu', error: error.message });
   }

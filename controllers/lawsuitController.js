@@ -3,20 +3,20 @@ const prisma = require('../db');
 // Tüm davaları getir
 exports.getAllLawsuits = async (req, res) => {
   try {
-    const lawsuits = await prisma.lawsuit.findMany({
+    const davalar = await prisma.dava.findMany({
       include: {
-        client: true,
-        lawyer: {
+        muvekkil: true,
+        avukat: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
       },
     });
-    res.json(lawsuits);
+    res.json(davalar);
   } catch (error) {
     res.status(500).json({ message: 'Davalar getirilirken hata oluştu', error: error.message });
   }
@@ -26,32 +26,30 @@ exports.getAllLawsuits = async (req, res) => {
 exports.getLawsuitById = async (req, res) => {
   try {
     const { id } = req.params;
-    const lawsuit = await prisma.lawsuit.findUnique({
+    const dava = await prisma.dava.findUnique({
       where: { id: Number(id) },
       include: {
-        client: {
+        muvekkil: {
           include: {
-            contacts: true,
-            addresses: true,
+            iletisimler: true,
+            adresler: true,
           }
         },
-        lawyer: {
+        avukat: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
-        tasks: true,
+        gorevler: true,
       },
     });
-    
-    if (!lawsuit) {
+    if (!dava) {
       return res.status(404).json({ message: 'Dava bulunamadı' });
     }
-    
-    res.json(lawsuit);
+    res.json(dava);
   } catch (error) {
     res.status(500).json({ message: 'Dava getirilirken hata oluştu', error: error.message });
   }
@@ -60,55 +58,39 @@ exports.getLawsuitById = async (req, res) => {
 // Yeni dava oluştur
 exports.createLawsuit = async (req, res) => {
   try {
-    const { 
-      caseNumber, 
-      caseType, 
-      court, 
-      description, 
-      startDate, 
-      clientId, 
-      opposingParty,
-      status
-    } = req.body;
-    
-    // Müşterinin var olup olmadığını kontrol et
-    const client = await prisma.client.findUnique({
-      where: { id: Number(clientId) },
+    const { davaNumarasi, davaTipi, mahkeme, aciklama, baslangicTarihi, muvekkilId, karsiTaraf, durum } = req.body;
+    const muvekkil = await prisma.muvekkil.findUnique({
+      where: { id: Number(muvekkilId) },
     });
-    
-    if (!client) {
-      return res.status(404).json({ message: 'Müşteri bulunamadı' });
+    if (!muvekkil) {
+      return res.status(404).json({ message: 'Müvekkil bulunamadı' });
     }
-    
-    // Kullanıcı ID'si (gerçek uygulamada kimlik doğrulama sisteminden gelecek)
-    const lawyerId = req.user?.id || 1; // Varsayılan olarak 1 kullanılıyor
-    
-    const newLawsuit = await prisma.lawsuit.create({
+    const avukatId = req.user?.id || 1;
+    const yeniDava = await prisma.dava.create({
       data: {
-        caseNumber,
-        caseType,
-        court,
-        description,
-        startDate: new Date(startDate),
-        clientId: Number(clientId),
-        lawyerId,
-        opposingParty,
-        status: status || 'ACTIVE',
+        davaNumarasi,
+        davaTipi,
+        mahkeme,
+        aciklama,
+        baslangicTarihi: new Date(baslangicTarihi),
+        muvekkilId: Number(muvekkilId),
+        avukatId,
+        karsiTaraf,
+        durum: durum || 'AKTIF',
       },
       include: {
-        client: true,
-        lawyer: {
+        muvekkil: true,
+        avukat: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
       },
     });
-    
-    res.status(201).json(newLawsuit);
+    res.status(201).json(yeniDava);
   } catch (error) {
     res.status(500).json({ message: 'Dava oluşturulurken hata oluştu', error: error.message });
   }
@@ -118,65 +100,47 @@ exports.createLawsuit = async (req, res) => {
 exports.updateLawsuit = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      caseNumber, 
-      caseType, 
-      court, 
-      description, 
-      startDate, 
-      endDate,
-      clientId, 
-      opposingParty,
-      status
-    } = req.body;
-    
-    // Davanın var olup olmadığını kontrol et
-    const existingLawsuit = await prisma.lawsuit.findUnique({
+    const { davaNumarasi, davaTipi, mahkeme, aciklama, baslangicTarihi, bitisTarihi, muvekkilId, karsiTaraf, durum } = req.body;
+    const mevcutDava = await prisma.dava.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingLawsuit) {
+    if (!mevcutDava) {
       return res.status(404).json({ message: 'Dava bulunamadı' });
     }
-    
-    // Müşteri değiştiyse müşterinin var olup olmadığını kontrol et
-    if (clientId && clientId !== existingLawsuit.clientId) {
-      const client = await prisma.client.findUnique({
-        where: { id: Number(clientId) },
+    if (muvekkilId && muvekkilId !== mevcutDava.muvekkilId) {
+      const muvekkil = await prisma.muvekkil.findUnique({
+        where: { id: Number(muvekkilId) },
       });
-      
-      if (!client) {
-        return res.status(404).json({ message: 'Müşteri bulunamadı' });
+      if (!muvekkil) {
+        return res.status(404).json({ message: 'Müvekkil bulunamadı' });
       }
     }
-    
-    const updatedLawsuit = await prisma.lawsuit.update({
+    const guncellenenDava = await prisma.dava.update({
       where: { id: Number(id) },
       data: {
-        caseNumber: caseNumber || undefined,
-        caseType: caseType || undefined,
-        court: court || undefined,
-        description: description || undefined,
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined,
-        clientId: clientId ? Number(clientId) : undefined,
-        opposingParty: opposingParty || undefined,
-        status: status || undefined,
+        davaNumarasi: davaNumarasi || undefined,
+        davaTipi: davaTipi || undefined,
+        mahkeme: mahkeme || undefined,
+        aciklama: aciklama || undefined,
+        baslangicTarihi: baslangicTarihi ? new Date(baslangicTarihi) : undefined,
+        bitisTarihi: bitisTarihi ? new Date(bitisTarihi) : undefined,
+        muvekkilId: muvekkilId ? Number(muvekkilId) : undefined,
+        karsiTaraf: karsiTaraf || undefined,
+        durum: durum || undefined,
       },
       include: {
-        client: true,
-        lawyer: {
+        muvekkil: true,
+        avukat: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
       },
     });
-    
-    res.json(updatedLawsuit);
+    res.json(guncellenenDava);
   } catch (error) {
     res.status(500).json({ message: 'Dava güncellenirken hata oluştu', error: error.message });
   }
@@ -186,27 +150,19 @@ exports.updateLawsuit = async (req, res) => {
 exports.deleteLawsuit = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Davanın var olup olmadığını kontrol et
-    const existingLawsuit = await prisma.lawsuit.findUnique({
+    const mevcutDava = await prisma.dava.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingLawsuit) {
+    if (!mevcutDava) {
       return res.status(404).json({ message: 'Dava bulunamadı' });
     }
-    
-    // İlişkili tüm task kayıtlarını güncelle (lawsuitId'yi null yap)
-    await prisma.task.updateMany({
-      where: { lawsuitId: Number(id) },
-      data: { lawsuitId: null },
+    await prisma.gorev.updateMany({
+      where: { davaId: Number(id) },
+      data: { davaId: null },
     });
-    
-    // Davayı sil
-    await prisma.lawsuit.delete({
+    await prisma.dava.delete({
       where: { id: Number(id) },
     });
-    
     res.json({ message: 'Dava başarıyla silindi' });
   } catch (error) {
     res.status(500).json({ message: 'Dava silinirken hata oluştu', error: error.message });
@@ -217,31 +173,29 @@ exports.deleteLawsuit = async (req, res) => {
 exports.getLawsuitTasks = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Davanın var olup olmadığını kontrol et
-    const existingLawsuit = await prisma.lawsuit.findUnique({
+    const mevcutDava = await prisma.dava.findUnique({
       where: { id: Number(id) },
     });
-    
-    if (!existingLawsuit) {
+    if (!mevcutDava) {
       return res.status(404).json({ message: 'Dava bulunamadı' });
     }
-    
-    const tasks = await prisma.task.findMany({
-      where: { lawsuitId: Number(id) },
+    const gorevler = await prisma.gorev.findMany({
+      where: { davaId: Number(id) },
       include: {
-        assignedTo: {
+        atananKullanici: {
           select: {
             id: true,
-            name: true,
-            surname: true,
-            email: true,
+            ad: true,
+            soyad: true,
+            eposta: true,
           }
         },
+        adimlar: true,
+        dosyalar: true,
+        liste: true,
       },
     });
-    
-    res.json(tasks);
+    res.json(gorevler);
   } catch (error) {
     res.status(500).json({ message: 'Görevler getirilirken hata oluştu', error: error.message });
   }

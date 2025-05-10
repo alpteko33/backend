@@ -4,16 +4,16 @@ const bcrypt = require('bcrypt');
 // Tüm kullanıcıları getir
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.kullanici.findMany({
       select: {
         id: true,
-        email: true,
-        name: true,
-        surname: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
+        eposta: true,
+        ad: true,
+        soyad: true,
+        rol: true,
+        durum: true,
+        olusturulmaTarihi: true,
+        guncellenmeTarihi: true,
       },
     });
     res.json(users);
@@ -26,17 +26,17 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await prisma.user.findUnique({
+    const user = await prisma.kullanici.findUnique({
       where: { id: Number(id) },
       select: {
         id: true,
-        email: true,
-        name: true,
-        surname: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
+        eposta: true,
+        ad: true,
+        soyad: true,
+        rol: true,
+        durum: true,
+        olusturulmaTarihi: true,
+        guncellenmeTarihi: true,
       },
     });
     
@@ -53,31 +53,31 @@ exports.getUserById = async (req, res) => {
 // Yeni kullanıcı oluştur
 exports.createUser = async (req, res) => {
   try {
-    const { email, password, name, surname, role } = req.body;
+    const { eposta, sifre, ad, soyad, rol } = req.body;
     
-    // Email kontrolü
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    // Eposta kontrolü
+    const existingUser = await prisma.kullanici.findUnique({
+      where: { eposta },
     });
     
     if (existingUser) {
-      return res.status(400).json({ message: 'Bu email adresi zaten kullanılıyor' });
+      return res.status(400).json({ message: 'Bu e-posta adresi zaten kullanılıyor' });
     }
     
     // Şifre hashleme
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(sifre, 10);
     
-    const newUser = await prisma.user.create({
+    const newUser = await prisma.kullanici.create({
       data: {
-        email,
-        password: hashedPassword,
-        name,
-        surname,
-        role: role || 'USER',
+        eposta,
+        sifre: hashedPassword,
+        ad,
+        soyad,
+        rol: rol || 'KULLANICI',
       },
     });
     
-    const { password: _, ...userWithoutPassword } = newUser;
+    const { sifre: _, ...userWithoutPassword } = newUser;
     res.status(201).json(userWithoutPassword);
   } catch (error) {
     res.status(500).json({ message: 'Kullanıcı oluşturulurken hata oluştu', error: error.message });
@@ -88,10 +88,10 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, name, surname, role, status } = req.body;
+    const { eposta, ad, soyad, rol, durum } = req.body;
     
     // Önce kullanıcının var olup olmadığını kontrol et
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.kullanici.findUnique({
       where: { id: Number(id) },
     });
     
@@ -99,35 +99,35 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
     
-    // Email değiştiyse benzersiz olduğundan emin ol
-    if (email && email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
-        where: { email },
+    // Eposta değiştiyse benzersiz olduğundan emin ol
+    if (eposta && eposta !== existingUser.eposta) {
+      const epostaExists = await prisma.kullanici.findUnique({
+        where: { eposta },
       });
       
-      if (emailExists) {
-        return res.status(400).json({ message: 'Bu email adresi zaten kullanılıyor' });
+      if (epostaExists) {
+        return res.status(400).json({ message: 'Bu e-posta adresi zaten kullanılıyor' });
       }
     }
     
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.kullanici.update({
       where: { id: Number(id) },
       data: {
-        email: email || undefined,
-        name: name || undefined,
-        surname: surname || undefined,
-        role: role || undefined,
-        status: status || undefined,
+        eposta: eposta || undefined,
+        ad: ad || undefined,
+        soyad: soyad || undefined,
+        rol: rol || undefined,
+        durum: durum || undefined,
       },
       select: {
         id: true,
-        email: true,
-        name: true,
-        surname: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
+        eposta: true,
+        ad: true,
+        soyad: true,
+        rol: true,
+        durum: true,
+        olusturulmaTarihi: true,
+        guncellenmeTarihi: true,
       },
     });
     
@@ -143,7 +143,7 @@ exports.deleteUser = async (req, res) => {
     const { id } = req.params;
     
     // Önce kullanıcının var olup olmadığını kontrol et
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.kullanici.findUnique({
       where: { id: Number(id) },
     });
     
@@ -151,7 +151,7 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
     
-    await prisma.user.delete({
+    await prisma.kullanici.delete({
       where: { id: Number(id) },
     });
     
@@ -168,7 +168,7 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     
     // Kullanıcıyı bul
-    const user = await prisma.user.findUnique({
+    const user = await prisma.kullanici.findUnique({
       where: { id: Number(id) },
     });
     
@@ -177,7 +177,7 @@ exports.changePassword = async (req, res) => {
     }
     
     // Mevcut şifreyi kontrol et
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.sifre);
     
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Mevcut şifre yanlış' });
@@ -186,10 +186,10 @@ exports.changePassword = async (req, res) => {
     // Yeni şifreyi hashle ve güncelle
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     
-    await prisma.user.update({
+    await prisma.kullanici.update({
       where: { id: Number(id) },
       data: {
-        password: hashedPassword,
+        sifre: hashedPassword,
       },
     });
     

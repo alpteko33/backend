@@ -13,150 +13,202 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
-  password    String
-  name        String
-  surname     String
-  role        Role     @default(USER)
-  status      Status   @default(ACTIVE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tasks       Task[]
-  createdClients Client[] @relation("CreatedBy")
-  createdLawsuits Lawsuit[] @relation("LawyerCreated")
+model Kullanici {
+  id                        Int      @id @default(autoincrement())
+  eposta                    String   @unique
+  sifre                     String
+  ad                        String
+  soyad                     String
+  rol                       Rol      @default(KULLANICI)
+  durum                     Durum    @default(AKTIF)
+  olusturulmaTarihi         DateTime @default(now())
+  guncellenmeTarihi         DateTime @updatedAt
+  gorevler                  Gorev[]
+  olusturulanMuvekkiller    Muvekkil[] @relation("OlusturanKullanici")
+  olusturulanDavalar        Dava[] @relation("AvukatOlusturan")
+  yuklenenDosyalar          Dosya[] @relation("KullaniciDosya")
+  olusturulanGorevListeleri GorevListesi[] @relation("OlusturanKullaniciGorevListesi")
+  davetEdildigiGorevListeleri GorevListesiKullanici[]
 }
 
-model Contact {
-  id          Int       @id @default(autoincrement())
-  type        ContactType
-  value       String
-  description String?
-  client      Client?   @relation(fields: [clientId], references: [id])
-  clientId    Int?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model Iletisim {
+  id                        Int       @id @default(autoincrement())
+  tip                       IletisimTipi
+  deger                     String
+  aciklama                  String?
+  muvekkil                  Muvekkil? @relation(fields: [muvekkilId], references: [id])
+  muvekkilId                Int?
+  olusturulmaTarihi         DateTime  @default(now())
+  guncellemeTarihi          DateTime  @updatedAt
 }
 
-model Task {
-  id          Int       @id @default(autoincrement())
-  title       String
-  description String?
-  dueDate     DateTime?
-  priority    Priority  @default(NORMAL)
-  status      TaskStatus @default(PENDING)
-  assignedTo  User      @relation(fields: [userId], references: [id])
-  userId      Int
-  client      Client?   @relation(fields: [clientId], references: [id])
-  clientId    Int?
-  lawsuit     Lawsuit?  @relation(fields: [lawsuitId], references: [id])
-  lawsuitId   Int?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model Gorev {
+  id                        Int       @id @default(autoincrement())
+  baslik                    String
+  aciklama                  String?
+  sonTarih                  DateTime?
+  oncelik                   Oncelik   @default(NORMAL)
+  durum                     GorevDurumu @default(BEKLEMEDE)
+  atananKullanici           Kullanici @relation(fields: [kullaniciId], references: [id])
+  kullaniciId               Int
+  muvekkil                  Muvekkil? @relation(fields: [muvekkilId], references: [id])
+  muvekkilId                Int?
+  dava                      Dava?     @relation(fields: [davaId], references: [id])
+  davaId                    Int?
+  olusturulmaTarihi         DateTime  @default(now())
+  guncellemeTarihi          DateTime  @updatedAt
+  adimlar                  Adim[]
+  dosyalar                 Dosya[]
+  liste                    GorevListesi? @relation(fields: [listeId], references: [id])
+  listeId                  Int?
+  gunumGorunumunde         Boolean?
+  banaAnimsat              DateTime?
+  yinelenen                Boolean?
 }
 
-model Client {
-  id          Int       @id @default(autoincrement())
-  name        String
-  surname     String
-  clientType  ClientType @default(INDIVIDUAL)
-  taxNumber   String?
-  companyName String?
-  contacts    Contact[]
-  addresses   Address[]
-  tasks       Task[]
-  lawsuits    Lawsuit[]
-  createdBy   User      @relation("CreatedBy", fields: [createdById], references: [id])
-  createdById Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model Muvekkil {
+  id                        Int       @id @default(autoincrement())
+  ad                        String
+  soyad                     String
+  muvekkilTipi              MuvekkilTipi @default(BIREYSEL)
+  vergiNumarasi             String?
+  firmaAdi                  String?
+  iletisimler               Iletisim[]
+  adresler                  Adres[]
+  gorevler                  Gorev[]
+  davalar                   Dava[]
+  olusturanKullanici        Kullanici @relation("OlusturanKullanici", fields: [olusturanKullaniciId], references: [id])
+  olusturanKullaniciId      Int
+  olusturulmaTarihi         DateTime  @default(now())
+  guncellemeTarihi          DateTime  @updatedAt
 }
 
-model Lawsuit {
-  id            Int       @id @default(autoincrement())
-  caseNumber    String    @unique
-  caseType      String
-  court         String
-  status        CaseStatus @default(ACTIVE)
-  description   String?
-  startDate     DateTime
-  endDate       DateTime?
-  client        Client    @relation(fields: [clientId], references: [id])
-  clientId      Int
-  tasks         Task[]
-  lawyer        User      @relation("LawyerCreated", fields: [lawyerId], references: [id])
-  lawyerId      Int
-  opposingParty String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model Dava {
+  id                        Int       @id @default(autoincrement())
+  davaNumarasi              String    @unique
+  davaTipi                  String
+  mahkeme                   String
+  durum                     DavaDurumu @default(AKTIF)
+  aciklama                  String?
+  baslangicTarihi           DateTime
+  bitisTarihi               DateTime?
+  muvekkil                  Muvekkil  @relation(fields: [muvekkilId], references: [id])
+  muvekkilId                Int
+  gorevler                  Gorev[]
+  avukat                    Kullanici @relation("AvukatOlusturan", fields: [avukatId], references: [id])
+  avukatId                  Int
+  karsiTaraf                String?
+  olusturulmaTarihi         DateTime  @default(now())
+  guncellemeTarihi          DateTime  @updatedAt
 }
 
-model Address {
-  id          Int       @id @default(autoincrement())
-  addressLine String
-  city        String
-  district    String?
-  postalCode  String?
-  country     String    @default("Türkiye")
-  addressType AddressType @default(HOME)
-  client      Client    @relation(fields: [clientId], references: [id])
-  clientId    Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model Adres {
+  id                        Int       @id @default(autoincrement())
+  adresSatiri              String
+  sehir                    String
+  ilce                     String?
+  postaKodu                String?
+  ulke                     String    @default("Türkiye")
+  adresTipi                AdresTipi @default(EV)
+  muvekkil                 Muvekkil  @relation(fields: [muvekkilId], references: [id])
+  muvekkilId               Int
+  olusturulmaTarihi        DateTime  @default(now())
+  guncellemeTarihi         DateTime  @updatedAt
 }
 
-enum Role {
-  ADMIN
-  LAWYER
-  SECRETARY
-  USER
+model Adim {
+  id                Int      @id @default(autoincrement())
+  metin             String   // Adımın açıklaması/metni
+  tamamlandi        Boolean  @default(false) // Adım tamamlandı mı?
+  sira              Int      // Adımın görev içindeki sırası
+  gorev             Gorev    @relation(fields: [gorevId], references: [id])
+  gorevId           Int
+  olusturulmaTarihi DateTime @default(now())
+  guncellemeTarihi  DateTime @updatedAt
 }
 
-enum Status {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
+model Dosya {
+  id                Int      @id @default(autoincrement())
+  dosyaAdi          String   // Dosyanın adı
+  dosyaYolu         String   // Dosyanın sistemdeki yolu veya URL'si
+  gorev             Gorev    @relation(fields: [gorevId], references: [id])
+  gorevId           Int
+  yukleyen          Kullanici @relation(fields: [kullaniciId], references: [id], name: "KullaniciDosya")
+  kullaniciId       Int
+  olusturulmaTarihi DateTime @default(now())
 }
 
-enum ContactType {
-  EMAIL
-  PHONE
-  MOBILE
-  FAX
-  OTHER
+model GorevListesi {
+  id                Int      @id @default(autoincrement())
+  ad                String   // Listenin adı
+  olusturan         Kullanici @relation(fields: [olusturanId], references: [id], name: "OlusturanKullaniciGorevListesi")
+  olusturanId       Int
+  gorevler          Gorev[]  // Bu listeye ait görevler
+  kullanicilar      GorevListesiKullanici[] // Paylaşılan kullanıcılar
+  olusturulmaTarihi DateTime @default(now())
 }
 
-enum Priority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
+model GorevListesiKullanici {
+  id                Int      @id @default(autoincrement())
+  gorevListesi      GorevListesi @relation(fields: [gorevListesiId], references: [id])
+  gorevListesiId    Int
+  kullanici         Kullanici @relation(fields: [kullaniciId], references: [id])
+  kullaniciId       Int
+  davetTarihi       DateTime @default(now())
 }
 
-enum TaskStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+enum Rol {
+  YONETICI
+  AVUKAT
+  SEKRETER
+  KULLANICI
 }
 
-enum ClientType {
-  INDIVIDUAL
-  COMPANY
+enum Durum {
+  AKTIF
+  PASIF
+  ASKIDA
 }
 
-enum CaseStatus {
-  ACTIVE
-  CLOSED
-  SUSPENDED
-  WON
-  LOST
+enum IletisimTipi {
+  E_POSTA
+  TELEFON
+  MOBIL
+  FAKS
+  DİGER
 }
 
-enum AddressType {
-  HOME
-  WORK
-  BILLING
-  OTHER
+enum Oncelik {
+  DUSUK    // Düşük öncelikli görev
+  NORMAL   // Normal öncelikli görev
+  YUKSEK   // Yüksek öncelikli görev
+  ACIL     // Acil öncelikli görev
+  ONEMLI   // Önemli görev (filtreleme için)
+}
+
+enum GorevDurumu {
+  BEKLEMEDE
+  DEVAM_EDIYOR
+  TAMAMLANDI
+  IPTAL_EDILDI
+}
+
+enum MuvekkilTipi {
+  BIREYSEL
+  KURUMSAL
+}
+
+enum DavaDurumu {
+  AKTIF
+  KAPALI
+  ASKIDA
+  KAZANILDI
+  KAYBEDILDI
+}
+
+enum AdresTipi {
+  EV
+  IS
+  FATURA
+  DİGER
 }
