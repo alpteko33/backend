@@ -1,23 +1,31 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Routes
-const userRoutes = require('./routes/api/users');
-const clientRoutes = require('./routes/api/clients');
-const lawsuitRoutes = require('./routes/api/lawsuits');
-const taskRoutes = require('./routes/api/tasks');
+const kullanicilarRoutes = require('./routes/api/kullanicilar');
+const muvekkilRoutes = require('./routes/api/muvekkiller');
+const davaRoutes = require('./routes/api/davalar');
+const gorevRoutes = require('./routes/api/gorevler');
+const personelRoutes = require('./routes/api/personeller');
+const evrakRoutes = require('./routes/api/evraklar');
+const finansIslemleriRoutes = require('./routes/api/finans-islemleri');
 
 // Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API Routes
-app.use('/api/users', userRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/lawsuits', lawsuitRoutes);
-app.use('/api/tasks', taskRoutes);
+app.use('/api/kullanicilar', kullanicilarRoutes);
+app.use('/api/muvekkiller', muvekkilRoutes);
+app.use('/api/davalar', davaRoutes);
+app.use('/api/gorevler', gorevRoutes);
+app.use('/api/personeller', personelRoutes);
+app.use('/api/evraklar', evrakRoutes);
+app.use('/api/finans-islemleri', finansIslemleriRoutes);
 
 // Root route
 app.get('/', (req, res) => {
