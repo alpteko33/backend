@@ -12,6 +12,14 @@ const gorevRoutes = require('./routes/api/gorevler');
 const personelRoutes = require('./routes/api/personeller');
 const evrakRoutes = require('./routes/api/evraklar');
 const finansIslemleriRoutes = require('./routes/api/finans-islemleri');
+const gorevListeleriRoutes = require('./routes/api/gorev-listeleri');
+const irtibatRoutes = require('./routes/api/irtibatlar');
+const iletisimRoutes = require('./routes/api/iletisimler');
+const adresRoutes = require('./routes/api/adresler');
+const adimRoutes = require('./routes/api/adimlar');
+const dosyaRoutes = require('./routes/api/dosyalar');
+const notRoutes = require('./routes/api/notlar');
+const calismaArkadasiRoutes = require('./routes/api/calisma-arkadaslari');
 
 // Middleware
 app.use(cors());
@@ -26,6 +34,14 @@ app.use('/api/gorevler', gorevRoutes);
 app.use('/api/personeller', personelRoutes);
 app.use('/api/evraklar', evrakRoutes);
 app.use('/api/finans-islemleri', finansIslemleriRoutes);
+app.use('/api/gorev-listeleri', gorevListeleriRoutes);
+app.use('/api/irtibatlar', irtibatRoutes);
+app.use('/api/iletisimler', iletisimRoutes);
+app.use('/api/adresler', adresRoutes);
+app.use('/api/adimlar', adimRoutes);
+app.use('/api/dosyalar', dosyaRoutes);
+app.use('/api/notlar', notRoutes);
+app.use('/api/calisma-arkadaslari', calismaArkadasiRoutes);
 
 // Root route
 app.get('/', (req, res) => {
