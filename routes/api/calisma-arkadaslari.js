@@ -15,9 +15,7 @@ router.get('/', async (req, res) => {
             soyad: true,
             sifre: false
           }
-        },
-        adresler: true,
-        iletisimler: true
+        }
       }
     });
     res.json(calismaArkadaslari);
@@ -39,9 +37,7 @@ router.get('/:id', async (req, res) => {
             soyad: true,
             sifre: false
           }
-        },
-        adresler: true,
-        iletisimler: true
+        }
       }
     });
     
@@ -78,6 +74,8 @@ router.post('/', async (req, res) => {
         tcKimlikNo: req.body.tcKimlikNo,
         telefonNo: req.body.telefonNo,
         eposta: req.body.eposta,
+        adres: req.body.adres,
+        baro: req.body.baro,
         baroNo: req.body.baroNo,
         kullaniciId: parseInt(req.body.kullaniciId)
       }
@@ -100,6 +98,8 @@ router.put('/:id', async (req, res) => {
         tcKimlikNo: req.body.tcKimlikNo,
         telefonNo: req.body.telefonNo,
         eposta: req.body.eposta,
+        adres: req.body.adres,
+        baro: req.body.baro,
         baroNo: req.body.baroNo
       }
     });
@@ -117,45 +117,6 @@ router.delete('/:id', async (req, res) => {
       where: { id: parseInt(req.params.id) }
     });
     res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST çalışma arkadaşına adres ekle
-router.post('/:id/adresler', async (req, res) => {
-  try {
-    const adres = await prisma.adres.create({
-      data: {
-        adresSatiri: req.body.adresSatiri,
-        sehir: req.body.sehir,
-        ilce: req.body.ilce,
-        postaKodu: req.body.postaKodu,
-        ulke: req.body.ulke || 'Türkiye',
-        adresTipi: req.body.adresTipi || 'EV',
-        calismaArkadasiId: parseInt(req.params.id)
-      }
-    });
-    
-    res.status(201).json(adres);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST çalışma arkadaşına iletişim bilgisi ekle
-router.post('/:id/iletisimler', async (req, res) => {
-  try {
-    const iletisim = await prisma.iletisim.create({
-      data: {
-        tip: req.body.tip,
-        deger: req.body.deger,
-        aciklama: req.body.aciklama,
-        calismaArkadasiId: parseInt(req.params.id)
-      }
-    });
-    
-    res.status(201).json(iletisim);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

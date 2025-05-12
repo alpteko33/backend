@@ -8,8 +8,8 @@ router.get('/', async (req, res) => {
   try {
     const finansIslemleri = await prisma.finansIslemi.findMany({
       include: {
-        ilgiliMuvekkil: true,
-        ilgiliDava: true,
+        muvekkil: true,
+        dava: true,
         kullanici: {
           select: {
             id: true,
@@ -32,8 +32,8 @@ router.get('/:id', async (req, res) => {
     const finansIslemi = await prisma.finansIslemi.findUnique({
       where: { id: parseInt(req.params.id) },
       include: {
-        ilgiliMuvekkil: true,
-        ilgiliDava: true,
+        muvekkil: true,
+        dava: true,
         kullanici: {
           select: {
             id: true,
@@ -64,12 +64,9 @@ router.post('/', async (req, res) => {
         miktar: parseFloat(req.body.miktar),
         aciklama: req.body.aciklama,
         islemTarihi: new Date(req.body.islemTarihi),
-        odemeKanali: req.body.odemeKanali,
-        kategori: req.body.kategori,
-        durum: req.body.durum || 'ONAYLANMADI',
+        kullaniciId: parseInt(req.body.kullaniciId),
         muvekkilId: req.body.muvekkilId ? parseInt(req.body.muvekkilId) : null,
-        davaId: req.body.davaId ? parseInt(req.body.davaId) : null,
-        kullaniciId: parseInt(req.body.kullaniciId)
+        davaId: req.body.davaId ? parseInt(req.body.davaId) : null
       }
     });
     
@@ -89,6 +86,12 @@ router.put('/:id', async (req, res) => {
     }
     if (data.miktar) {
       data.miktar = parseFloat(data.miktar);
+    }
+    if (data.muvekkilId) {
+      data.muvekkilId = parseInt(data.muvekkilId);
+    }
+    if (data.davaId) {
+      data.davaId = parseInt(data.davaId);
     }
     
     const finansIslemi = await prisma.finansIslemi.update({

@@ -21,6 +21,17 @@ const dosyaRoutes = require('./routes/api/dosyalar');
 const notRoutes = require('./routes/api/notlar');
 const calismaArkadasiRoutes = require('./routes/api/calisma-arkadaslari');
 
+// Yeni route'lar
+const gorevListesiKullaniciRoutes = require('./routes/api/gorev-listesi-kullanici');
+const personelOzlukEvraklariRoutes = require('./routes/api/personel-ozluk-evraklari');
+const personelIzinlerRoutes = require('./routes/api/personel-izinler');
+const personelUcretPusulalariRoutes = require('./routes/api/personel-ucret-pusulalari');
+const sozlesmeDetaylarRoutes = require('./routes/api/sozlesme-detaylar');
+const gorusmeTutanagiDetaylarRoutes = require('./routes/api/gorusme-tutanagi-detaylar');
+const yargiBirimleriRoutes = require('./routes/api/yargi-birimleri');
+const cezaMahkemeleriRoutes = require('./routes/api/ceza-mahkemeleri');
+const hukukMahkemeleriRoutes = require('./routes/api/hukuk-mahkemeleri');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -42,6 +53,17 @@ app.use('/api/adimlar', adimRoutes);
 app.use('/api/dosyalar', dosyaRoutes);
 app.use('/api/notlar', notRoutes);
 app.use('/api/calisma-arkadaslari', calismaArkadasiRoutes);
+
+// Yeni API Routes
+app.use('/api/gorev-listesi-kullanicilar', gorevListesiKullaniciRoutes);
+app.use('/api/personel-ozluk-evraklari', personelOzlukEvraklariRoutes);
+app.use('/api/personel-izinler', personelIzinlerRoutes);
+app.use('/api/personel-ucret-pusulalari', personelUcretPusulalariRoutes);
+app.use('/api/sozlesme-detaylar', sozlesmeDetaylarRoutes);
+app.use('/api/gorusme-tutanagi-detaylar', gorusmeTutanagiDetaylarRoutes);
+app.use('/api/yargi-birimleri', yargiBirimleriRoutes);
+app.use('/api/ceza-mahkemeleri', cezaMahkemeleriRoutes);
+app.use('/api/hukuk-mahkemeleri', hukukMahkemeleriRoutes);
 
 // Root route
 app.get('/', (req, res) => {
