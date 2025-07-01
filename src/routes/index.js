@@ -18,6 +18,11 @@ try {
   // Kullanıcı işlemleri
   router.use('/kullanicilar', require('./api/kullanicilar'));
   
+  // ⭐ SENKRONIZASYON ENDPOINTS - AKTIF EDİLDİ
+  router.use('/senkronizasyon', require('./api/senkronizasyon'));
+  // Frontend uyumluluğu için /sync alias'ı
+  router.use('/sync', require('./api/senkronizasyon'));
+  
 } catch (error) {
   console.error('❌ Route import hatası:', error.message);
 }
@@ -30,7 +35,6 @@ router.use('/muvekkiller', require('./api/muvekkiller'));
 router.use('/personeller', require('./api/personeller'));
 router.use('/calisma-arkadaslari', require('./api/calisma-arkadaslari'));
 router.use('/personel-davetler', require('./api/personel-davetler'));
-router.use('/senkronizasyon', require('./api/senkronizasyon'));
 router.use('/davalar', require('./api/davalar'));
 router.use('/gorevler', require('./api/gorevler'));
 router.use('/gorev-listeleri', require('./api/gorev-listeleri'));
