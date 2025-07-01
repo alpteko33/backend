@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "avukatlik-buros-yonetim-api",
   "builds": [
     {
       "src": "index.js",
@@ -15,11 +14,6 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "index.js": {
-      "maxDuration": 30
-    }
   },
   "installCommand": "npm ci",
   "buildCommand": "npx prisma generate"
